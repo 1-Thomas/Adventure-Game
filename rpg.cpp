@@ -1,2 +1,6 @@
 #include <iostream>
-int main() { std::cout << "Hello Word";}
+int main() { 
+    std::string pname;
+    std::cout << "Insert Player Name: ";
+    std::cin >> pname;
+}
