@@ -25,7 +25,8 @@ class Inventory {
 private:
     Item** items;     
     int count;        
-    int capacity;     
+    int capacity;
+         
 
     void resize(int newCapacity);
 
@@ -35,6 +36,10 @@ public:
 
     void add(Item* itemPtr);
     void list() const;
+
+    int size() const;
+    Item* get(int index) const;
+    Item* removeAt(int index);
 };
 class Player {
 public:
@@ -47,7 +52,7 @@ public:
 class HealthPotion : public Item {
     int healAmount;
 public:
-    HealthPotion(int amt) : Item("Healing Potion", "Restores health."), healAmount(amt) {}
+    HealthPotion(int amt) : Item("Healing Potion", "Adds more HP."), healAmount(amt) {}
     void use(Player& player) override {
         player.hp += healAmount;
         std::cout << "You gained " << healAmount << "HP.\n";
@@ -104,6 +109,33 @@ void Inventory::list() const {
     }
 }
 
+int Inventory::size() const {
+    return count;
+}
+
+Item* Inventory::get(int index) const {
+    if (index < 0 || index >= count) {
+        return nullptr;
+    }
+    return items[index];
+}
+
+Item* Inventory::removeAt(int index) {
+    if (index < 0 || index >= count) {
+        return nullptr;
+    }
+
+    Item* removed = items[index];
+
+    for (int i = index; i < count - 1; i++) {
+        items[i] = items[i + 1];
+    }
+
+    count--;
+    return removed;
+}
+
+
 
 
 int main() { 
@@ -117,5 +149,24 @@ int main() {
 
 
     p.inventory.add(new HealthPotion(6));
+    p.inventory.list();
+
+    std::cout << "Enter index of item to use: ";
+    int idx;
+    std::cin >> idx;
+
+    Item* it = p.inventory.get(idx);
+    if (!it) {
+        std::cout << "Invalid inventory index.\n";
+    } else {
+        it->use(p);
+
+        Item* consumed = p.inventory.removeAt(idx);
+        delete consumed;
+
+        std::cout << "Item consumed and removed from inventory.\n";
+    }
+
+    std::cout << "Player HP is now: " << p.hp << "\n";
     p.inventory.list();
 }
