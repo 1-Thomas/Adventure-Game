@@ -135,6 +135,46 @@ Item* Inventory::removeAt(int index) {
     return removed;
 }
 
+class Room {
+public:
+    std::string name;
+
+    Room* north;
+    Room* south;
+    Room* east;
+    Room* west;
+
+    Room(const std::string& n)
+        : name(n), north(nullptr), south(nullptr), east(nullptr), west(nullptr) {}
+
+    void describe() const {
+        std::cout << "\n== " << name << " ==\n";
+
+        std::cout << "Exits: ";
+        bool any = false;
+        if (north) { std::cout << "north "; any = true; }
+        if (south) { std::cout << "south "; any = true; }
+        if (east)  { std::cout << "east ";  any = true; }
+        if (west)  { std::cout << "west ";  any = true; }
+        if (!any) std::cout << "none";
+        std::cout << "\n";
+    }
+};
+
+
+
+Room* moveRoom(Room* current, const std::string& dir) {
+    if (!current) return nullptr;
+
+    if (dir == "north") return current->north ? current->north : current;
+    if (dir == "south") return current->south ? current->south : current;
+    if (dir == "east")  return current->east  ? current->east  : current;
+    if (dir == "west")  return current->west  ? current->west  : current;
+
+    return current;
+}
+
+
 
 
 
@@ -145,28 +185,76 @@ int main() {
 
     Player p(pname);
 
-    //std::cout << "Player " << p.name << " created with " << p.hp << "HP and " << p.attackD << " Attack Damage"<< "\n";
+    // std::cout << "Player " << p.name << " created with " << p.hp << "HP and " << p.attackD << " Attack Damage"<< "\n";
 
 
-    p.inventory.add(new HealthPotion(6));
-    p.inventory.list();
+    // p.inventory.add(new HealthPotion(6));
+    // p.inventory.list();
 
-    std::cout << "Enter index of item to use: ";
-    int idx;
-    std::cin >> idx;
+    // std::cout << "Enter index of item to use: ";
+    // int idx;
+    // std::cin >> idx;
 
-    Item* it = p.inventory.get(idx);
-    if (!it) {
-        std::cout << "Invalid inventory index.\n";
-    } else {
-        it->use(p);
+    // Item* it = p.inventory.get(idx);
+    // if (!it) {
+    //     std::cout << "Invalid inventory index.\n";
+    // } else {
+    //     it->use(p);
 
-        Item* consumed = p.inventory.removeAt(idx);
-        delete consumed;
+    //     Item* consumed = p.inventory.removeAt(idx);
+    //     delete consumed;
 
-        std::cout << "Item consumed and removed from inventory.\n";
+    //     std::cout << "Item consumed and removed from inventory.\n";
+    // }
+
+    // std::cout << "Player HP is now: " << p.hp << "\n";
+    // p.inventory.list();
+
+    Room* village = new Room("Village");
+    Room* forest  = new Room("Forest");
+    Room* castle   = new Room("Old Castle");
+
+    village->north = forest;
+    forest->south  = village;
+
+    forest->east   = castle;
+    castle->west    = forest;
+
+    Room* current = village;
+
+    std::cout << "Type: go north/south/east/west or quit\n";
+
+    while (true) {
+        current->describe();
+
+        std::cout << "\n> ";
+        std::string cmd;
+        std::cin >> cmd;
+
+        if (cmd == "quit") {
+            break;
+        }
+        else if (cmd == "go") {
+            std::string dir;
+            std::cin >> dir;
+
+            Room* next = moveRoom(current, dir);
+            if (next == current) {
+                std::cout << "You can't go that way.\n";
+            } else {
+                current = next;
+                std::cout << "You move " << dir << ".\n";
+            }
+        }
+        else {
+            std::cout << "Unknown command.\n";
+        }
     }
 
-    std::cout << "Player HP is now: " << p.hp << "\n";
-    p.inventory.list();
+
+    
+    delete village;
+    delete forest;
+    delete castle;
+    return 0;
 }
