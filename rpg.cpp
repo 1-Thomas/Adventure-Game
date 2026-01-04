@@ -2,31 +2,32 @@
 #include <string>
 class Player;
 
-
-class Enemy {
+class Enemy
+{
 public:
     std::string name;
     int hp, attackD;
 
-    Enemy(const std::string& n, int h, int a) : name(n), hp(h), attackD(a) {}
+    Enemy(const std::string &n, int h, int a) : name(n), hp(h), attackD(a) {}
+    bool isAlive() const { return hp > 0; }
 };
 
-
-class Item {
+class Item
+{
 public:
     std::string name, description;
 
-    Item(const std::string& n, const std::string& d) : name(n), description(d) {}
+    Item(const std::string &n, const std::string &d) : name(n), description(d) {}
     virtual ~Item() = default;
-    virtual void use(Player& player) = 0;
+    virtual void use(Player &player) = 0;
 };
 
-class Inventory {
+class Inventory
+{
 private:
-    Item** items;     
-    int count;        
+    Item **items;
+    int count;
     int capacity;
-         
 
     void resize(int newCapacity);
 
@@ -34,100 +35,119 @@ public:
     Inventory();
     ~Inventory();
 
-    void add(Item* itemPtr);
+    void add(Item *itemPtr);
     void list() const;
 
     int size() const;
-    Item* get(int index) const;
-    Item* removeAt(int index);
+    Item *get(int index) const;
+    Item *removeAt(int index);
 };
-class Player {
+class Player
+{
 public:
     std::string name;
     int hp, attackD;
-    Inventory inventory;   
+    Inventory inventory;
 
-    Player(const std::string& n) : name(n), hp(25), attackD(5), inventory() {}
+    Player(const std::string &n) : name(n), hp(25), attackD(5), inventory() {}
+    bool isAlive() const { return hp > 0; }
 };
-class HealthPotion : public Item {
+class HealthPotion : public Item
+{
     int healAmount;
+
 public:
     HealthPotion(int amt) : Item("Healing Potion", "Adds more HP."), healAmount(amt) {}
-    void use(Player& player) override {
+    void use(Player &player) override
+    {
         player.hp += healAmount;
         std::cout << "You gained " << healAmount << "HP.\n";
     }
 };
 
-
-Inventory::Inventory() : items(nullptr), count(0), capacity(0) {
+Inventory::Inventory() : items(nullptr), count(0), capacity(0)
+{
     capacity = 4;
-    items = new Item*[capacity];
+    items = new Item *[capacity];
 }
 
-Inventory::~Inventory() {
-    for (int i = 0; i < count; i++) {
+Inventory::~Inventory()
+{
+    for (int i = 0; i < count; i++)
+    {
         delete items[i];
     }
     delete[] items;
 }
 
+void Inventory::resize(int newCapacity)
+{
+    Item **newArr = new Item *[newCapacity];
 
-void Inventory::resize(int newCapacity) {
-    Item** newArr = new Item*[newCapacity];
-
-  
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
         newArr[i] = items[i];
     }
 
-    delete[] items;   
+    delete[] items;
     items = newArr;
     capacity = newCapacity;
 }
 
-void Inventory::add(Item* itemPtr) {
-    if (!itemPtr) return;
+void Inventory::add(Item *itemPtr)
+{
+    if (!itemPtr)
+        return;
 
-    if (count == capacity) {
+    if (count == capacity)
+    {
         resize(capacity * 2);
     }
 
     items[count++] = itemPtr;
 }
 
-void Inventory::list() const {
-    if (count == 0) {
+void Inventory::list() const
+{
+    if (count == 0)
+    {
         std::cout << "Inventory is empty.\n";
         return;
     }
 
     std::cout << "Inventory:\n";
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
         std::cout << "  [" << i << "] " << items[i]->name
                   << " - " << items[i]->description << "\n";
     }
 }
 
-int Inventory::size() const {
+int Inventory::size() const
+{
     return count;
 }
 
-Item* Inventory::get(int index) const {
-    if (index < 0 || index >= count) {
+Item *Inventory::get(int index) const
+{
+    if (index < 0 || index >= count)
+    {
         return nullptr;
     }
     return items[index];
 }
 
-Item* Inventory::removeAt(int index) {
-    if (index < 0 || index >= count) {
+Item *Inventory::removeAt(int index)
+{
+    if (index < 0 || index >= count)
+    {
         return nullptr;
     }
 
-    Item* removed = items[index];
+    Item *removed = items[index];
 
-    for (int i = index; i < count - 1; i++) {
+    for (int i = index; i < count - 1; i++)
+    {
         items[i] = items[i + 1];
     }
 
@@ -135,126 +155,218 @@ Item* Inventory::removeAt(int index) {
     return removed;
 }
 
-class Room {
+
+class Room
+{
 public:
     std::string name;
 
-    Room* north;
-    Room* south;
-    Room* east;
-    Room* west;
+    Room *north;
+    Room *south;
+    Room *east;
+    Room *west;
 
-    Room(const std::string& n)
-        : name(n), north(nullptr), south(nullptr), east(nullptr), west(nullptr) {}
+    Room(const std::string &n)
+        : name(n),
+          north(nullptr), south(nullptr), east(nullptr), west(nullptr),
+          enemies(nullptr), enemyCount(0), enemyCapacity(0)
+    {
 
-    void describe() const {
+        enemyCapacity = 3;
+        enemies = new Enemy *[enemyCapacity];
+    }
+
+    ~Room()
+    {
+        for (int i = 0; i < enemyCount; i++)
+        {
+            delete enemies[i];
+        }
+        delete[] enemies;
+    }
+
+    void addEnemy(Enemy *e)
+    {
+        if (!e)
+            return;
+        if (enemyCount == enemyCapacity)
+        {
+            resizeEnemies(enemyCapacity * 2);
+        }
+        enemies[enemyCount++] = e;
+    }
+
+    void listEnemies() const
+    {
+        if (enemyCount == 0)
+        {
+            std::cout << "Enemies: none\n";
+            return;
+        }
+
+        std::cout << "Enemies:\n";
+        for (int i = 0; i < enemyCount; i++)
+        {
+            std::cout << "  [" << i << "] " << enemies[i]->name
+                      << " (HP " << enemies[i]->hp
+                      << ", ATK " << enemies[i]->attackD << ")\n";
+        }
+    }
+
+    int getEnemyCount() const { return enemyCount; }
+
+    Enemy *getEnemy(int index) const
+    {
+        if (index < 0 || index >= enemyCount)
+            return nullptr;
+        return enemies[index];
+    }
+
+    Enemy *removeEnemyAt(int index)
+    {
+        if (index < 0 || index >= enemyCount)
+            return nullptr;
+
+        Enemy *removed = enemies[index];
+        for (int i = index; i < enemyCount - 1; i++)
+        {
+            enemies[i] = enemies[i + 1];
+        }
+        enemyCount--;
+        return removed;
+    }
+
+    void describe() const
+    {
         std::cout << "\n== " << name << " ==\n";
+        listEnemies();
 
         std::cout << "Exits: ";
         bool any = false;
-        if (north) { std::cout << "north "; any = true; }
-        if (south) { std::cout << "south "; any = true; }
-        if (east)  { std::cout << "east ";  any = true; }
-        if (west)  { std::cout << "west ";  any = true; }
-        if (!any) std::cout << "none";
+        if (north)
+        {
+            std::cout << "north ";
+            any = true;
+        }
+        if (south)
+        {
+            std::cout << "south ";
+            any = true;
+        }
+        if (east)
+        {
+            std::cout << "east ";
+            any = true;
+        }
+        if (west)
+        {
+            std::cout << "west ";
+            any = true;
+        }
+        if (!any)
+            std::cout << "none";
         std::cout << "\n";
+    }
+
+private:
+    Enemy **enemies;
+    int enemyCount;
+    int enemyCapacity;
+
+    void resizeEnemies(int newCapacity)
+    {
+        Enemy **newArr = new Enemy *[newCapacity];
+        for (int i = 0; i < enemyCount; i++)
+        {
+            newArr[i] = enemies[i];
+        }
+        delete[] enemies;
+        enemies = newArr;
+        enemyCapacity = newCapacity;
     }
 };
 
+Room *moveRoom(Room *current, const std::string &dir)
+{
+    if (!current)
+        return nullptr;
 
-
-Room* moveRoom(Room* current, const std::string& dir) {
-    if (!current) return nullptr;
-
-    if (dir == "north") return current->north ? current->north : current;
-    if (dir == "south") return current->south ? current->south : current;
-    if (dir == "east")  return current->east  ? current->east  : current;
-    if (dir == "west")  return current->west  ? current->west  : current;
+    if (dir == "north")
+        return current->north ? current->north : current;
+    if (dir == "south")
+        return current->south ? current->south : current;
+    if (dir == "east")
+        return current->east ? current->east : current;
+    if (dir == "west")
+        return current->west ? current->west : current;
 
     return current;
 }
 
-
-
-
-
-int main() { 
+int main()
+{
     std::string pname;
     std::cout << "Insert Player Name: ";
     std::cin >> pname;
 
     Player p(pname);
 
-    // std::cout << "Player " << p.name << " created with " << p.hp << "HP and " << p.attackD << " Attack Damage"<< "\n";
-
-
-    // p.inventory.add(new HealthPotion(6));
-    // p.inventory.list();
-
-    // std::cout << "Enter index of item to use: ";
-    // int idx;
-    // std::cin >> idx;
-
-    // Item* it = p.inventory.get(idx);
-    // if (!it) {
-    //     std::cout << "Invalid inventory index.\n";
-    // } else {
-    //     it->use(p);
-
-    //     Item* consumed = p.inventory.removeAt(idx);
-    //     delete consumed;
-
-    //     std::cout << "Item consumed and removed from inventory.\n";
-    // }
-
-    // std::cout << "Player HP is now: " << p.hp << "\n";
-    // p.inventory.list();
-
-    Room* village = new Room("Village");
-    Room* forest  = new Room("Forest");
-    Room* castle   = new Room("Old Castle");
+    Room *village = new Room("Village");
+    Room *forest = new Room("Forest");
+    Room *castle = new Room("Old Castle");
 
     village->north = forest;
-    forest->south  = village;
+    forest->south = village;
 
-    forest->east   = castle;
-    castle->west    = forest;
+    forest->east = castle;
+    castle->west = forest;
 
-    Room* current = village;
+    forest->addEnemy(new Enemy("Bandit", 12, 4));
+    forest->addEnemy(new Enemy("Troll", 14, 5));
 
-    std::cout << "Type: go north/south/east/west or quit\n";
+    castle->addEnemy(new Enemy("Skeleton Guard", 18, 6));
+    castle->addEnemy(new Enemy("Armored Knight", 22, 7));
 
-    while (true) {
+    Room *current = village;
+
+    std::cout << "Commands: go <north|south|east|west>, quit\n";
+
+    while (true)
+    {
         current->describe();
 
         std::cout << "\n> ";
         std::string cmd;
         std::cin >> cmd;
 
-        if (cmd == "quit") {
+        if (cmd == "quit")
+        {
             break;
         }
-        else if (cmd == "go") {
+        else if (cmd == "go")
+        {
             std::string dir;
             std::cin >> dir;
 
-            Room* next = moveRoom(current, dir);
-            if (next == current) {
+            Room *next = moveRoom(current, dir);
+            if (next == current)
+            {
                 std::cout << "You can't go that way.\n";
-            } else {
+            }
+            else
+            {
                 current = next;
                 std::cout << "You move " << dir << ".\n";
             }
         }
-        else {
+        else
+        {
             std::cout << "Unknown command.\n";
         }
     }
-
-
-    
     delete village;
     delete forest;
     delete castle;
+
     return 0;
 }
