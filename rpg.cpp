@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <limits>
 class Player;
 
 class Enemy
@@ -459,7 +460,15 @@ int main()
         else if (cmd == "take")
         {
             int idx;
-            std::cin >> idx;
+
+            if (!(std::cin >> idx))
+            {
+                std::cout << "Please type: take <number>\n";
+
+                std::cin.clear();                                                   // clear fail state
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // discard rest of line
+                continue;                                                           // go back to top of loop
+            }
 
             Item *picked = current->removeItemAt(idx);
             if (!picked)
@@ -469,9 +478,10 @@ int main()
             else
             {
                 std::cout << "You picked up: " << picked->name << "\n";
-                p.inventory.add(picked); 
+                p.inventory.add(picked);
             }
         }
+
         else if (cmd == "inv")
         {
             p.inventory.list();
