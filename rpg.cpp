@@ -1,6 +1,14 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <cstdlib>
+#include <ctime>
+#include <thread>
+#include <chrono>
+void pauseMs(int ms)
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+}
 class Player;
 
 class Enemy
@@ -397,8 +405,71 @@ Item *Room::removeItemAt(int index)
     return removed;
 }
 
+void fightEnemy(Player &player, Room &room, int enemyIndex)
+{
+    Enemy *enemy = room.getEnemy(enemyIndex);
+    if (!enemy)
+    {
+        std::cout << "Invalid enemy index.\n";
+        return;
+    }
+
+    std::cout << "You engage " << enemy->name << " in combat.\n";
+    pauseMs(2400);
+
+    while (player.isAlive() && enemy->isAlive())
+    {
+
+        int playerDmg = player.attackD;
+
+        playerDmg += (std::rand() % 3) - 1;
+        if (playerDmg < 0)
+            playerDmg = 0;
+
+        enemy->hp -= playerDmg;
+        if (enemy->hp < 0)
+            enemy->hp = 0;
+
+        std::cout << "You hit " << enemy->name << " for " << playerDmg
+                  << " damage. Enemy HP: " << enemy->hp << "\n";
+        
+        pauseMs(2400);
+
+        if (!enemy->isAlive())
+            break;
+
+        int enemyDmg = enemy->attackD;
+
+        enemyDmg += (std::rand() % 3) - 1;
+        if (enemyDmg < 0)
+            enemyDmg = 0;
+
+        player.hp -= enemyDmg;
+        if (player.hp < 0)
+            player.hp = 0;
+
+        std::cout << enemy->name << " hits you for " << enemyDmg
+                  << " damage. Your HP: " << player.hp << "\n";
+        pauseMs(2400);
+    }
+
+    if (!player.isAlive())
+    {
+        std::cout << "You have been defeated.\n";
+        return;
+    }
+
+    Enemy *defeated = room.removeEnemyAt(enemyIndex);
+    delete defeated;
+
+    std::cout << "You defeated the enemy.\n";
+    pauseMs(2400);
+}
+
 int main()
 {
+
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
     std::string pname;
     std::cout << "Insert Player Name: ";
     std::cin >> pname;
@@ -427,12 +498,13 @@ int main()
 
     Room *current = village;
 
-    std::cout << "Commands: go <north|south|east|west>, take <index>, inv, quit\n";
+    std::cout << "Commands: go <north|south|east|west>, take <index>, fight <index>, inv, use <index>, quit\n";
 
     while (true)
     {
+        pauseMs(1800);
         current->describe();
-
+        std::cout << "Player HP: " << p.hp << " | ATK: " << p.attackD << "\n";
         std::cout << "\n> ";
         std::string cmd;
         std::cin >> cmd;
@@ -481,11 +553,60 @@ int main()
                 p.inventory.add(picked);
             }
         }
-
         else if (cmd == "inv")
         {
             p.inventory.list();
         }
+        else if (cmd == "use")
+        {
+            int idx;
+
+            if (!(std::cin >> idx))
+            {
+                std::cout << "Please type: use <number>\n";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+
+            Item *item = p.inventory.get(idx);
+            if (!item)
+            {
+                std::cout << "Invalid inventory index.\n";
+                continue;
+            }
+
+            item->use(p);
+
+            if (dynamic_cast<HealthPotion *>(item) != nullptr)
+            {
+                Item *consumed = p.inventory.removeAt(idx);
+                delete consumed;
+                std::cout << "The potion was consumed.\n";
+            }
+        }
+
+        else if (cmd == "fight")
+        {
+            int idx;
+
+            if (!(std::cin >> idx))
+            {
+                std::cout << "Please type: fight <number>\n";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+
+            fightEnemy(p, *current, idx);
+
+            if (!p.isAlive())
+            {
+                std::cout << "Game Over.\n";
+                break;
+            }
+        }
+
         else
         {
             std::cout << "Unknown command.\n";
