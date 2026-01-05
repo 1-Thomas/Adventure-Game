@@ -80,7 +80,6 @@ public:
     }
 };
 
-
 Inventory::Inventory() : items(nullptr), count(0), capacity(0)
 {
     capacity = 4;
@@ -171,7 +170,6 @@ Item *Inventory::removeAt(int index)
     return removed;
 }
 
-
 class Room
 {
 public:
@@ -185,11 +183,14 @@ public:
     Room(const std::string &n)
         : name(n),
           north(nullptr), south(nullptr), east(nullptr), west(nullptr),
-          enemies(nullptr), enemyCount(0), enemyCapacity(0)
+          enemies(nullptr), enemyCount(0), enemyCapacity(0),
+          groundItems(nullptr), itemCount(0), itemCapacity(0)
     {
-
         enemyCapacity = 3;
         enemies = new Enemy *[enemyCapacity];
+
+        itemCapacity = 3;
+        groundItems = new Item *[itemCapacity];
     }
 
     ~Room()
@@ -199,7 +200,17 @@ public:
             delete enemies[i];
         }
         delete[] enemies;
+
+        for (int i = 0; i < itemCount; i++)
+        {
+            delete groundItems[i];
+        }
+        delete[] groundItems;
     }
+
+    void addItem(Item *it);
+    void listItems() const;
+    Item *removeItemAt(int index);
 
     void addEnemy(Enemy *e)
     {
@@ -256,6 +267,7 @@ public:
     {
         std::cout << "\n== " << name << " ==\n";
         listEnemies();
+        listItems();
 
         std::cout << "Exits: ";
         bool any = false;
@@ -289,6 +301,10 @@ private:
     int enemyCount;
     int enemyCapacity;
 
+    Item **groundItems;
+    int itemCount;
+    int itemCapacity;
+
     void resizeEnemies(int newCapacity)
     {
         Enemy **newArr = new Enemy *[newCapacity];
@@ -300,6 +316,8 @@ private:
         enemies = newArr;
         enemyCapacity = newCapacity;
     }
+
+    void resizeItems(int newCapacity);
 };
 
 Room *moveRoom(Room *current, const std::string &dir)
@@ -317,6 +335,65 @@ Room *moveRoom(Room *current, const std::string &dir)
         return current->west ? current->west : current;
 
     return current;
+}
+
+void Room::resizeItems(int newCapacity)
+{
+    Item **newArr = new Item *[newCapacity];
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        newArr[i] = groundItems[i];
+    }
+
+    delete[] groundItems;
+    groundItems = newArr;
+    itemCapacity = newCapacity;
+}
+
+void Room::addItem(Item *it)
+{
+    if (!it)
+        return;
+
+    if (itemCount == itemCapacity)
+    {
+        resizeItems(itemCapacity * 2);
+    }
+
+    groundItems[itemCount++] = it;
+}
+
+void Room::listItems() const
+{
+    if (itemCount == 0)
+    {
+        std::cout << "Items on ground: none\n";
+        return;
+    }
+
+    std::cout << "Items on ground:\n";
+    for (int i = 0; i < itemCount; i++)
+    {
+        std::cout << "  [" << i << "] " << groundItems[i]->name
+                  << " - " << groundItems[i]->description << "\n";
+    }
+}
+
+Item *Room::removeItemAt(int index)
+{
+    if (index < 0 || index >= itemCount)
+        return nullptr;
+
+    Item *removed = groundItems[index];
+
+    for (int i = index; i < itemCount - 1; i++)
+    {
+        groundItems[i] = groundItems[i + 1];
+    }
+
+    itemCount--;
+    return removed;
 }
 
 int main()
@@ -343,9 +420,13 @@ int main()
     castle->addEnemy(new Enemy("Skeleton Guard", 18, 6));
     castle->addEnemy(new Enemy("Armored Knight", 22, 7));
 
+    village->addItem(new HealthPotion(6));
+    forest->addItem(new Sword(3));
+    castle->addItem(new HealthPotion(10));
+
     Room *current = village;
 
-    std::cout << "Commands: go <north|south|east|west>, quit\n";
+    std::cout << "Commands: go <north|south|east|west>, take <index>, inv, quit\n";
 
     while (true)
     {
@@ -374,6 +455,26 @@ int main()
                 current = next;
                 std::cout << "You move " << dir << ".\n";
             }
+        }
+        else if (cmd == "take")
+        {
+            int idx;
+            std::cin >> idx;
+
+            Item *picked = current->removeItemAt(idx);
+            if (!picked)
+            {
+                std::cout << "Invalid item index.\n";
+            }
+            else
+            {
+                std::cout << "You picked up: " << picked->name << "\n";
+                p.inventory.add(picked); 
+            }
+        }
+        else if (cmd == "inv")
+        {
+            p.inventory.list();
         }
         else
         {
