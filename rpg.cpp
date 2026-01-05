@@ -64,6 +64,22 @@ public:
         std::cout << "You gained " << healAmount << "HP.\n";
     }
 };
+class Sword : public Item
+{
+    int bonusAD;
+
+public:
+    Sword(int bonus)
+        : Item("Sword", "Increases attack damage."), bonusAD(bonus) {}
+
+    void use(Player &player) override
+    {
+        player.attackD += bonusAD;
+        std::cout << "You equipped the " << name << "! Attack increased by "
+                  << bonusAD << ". New ATK: " << player.attackD << "\n";
+    }
+};
+
 
 Inventory::Inventory() : items(nullptr), count(0), capacity(0)
 {
