@@ -498,19 +498,44 @@ bool readIntArg(int &out)
     return true;
 }
 
-int main()
+struct World
 {
+    Room **rooms;
+    int count;
 
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::string pname;
-    std::cout << "Insert Player Name: ";
-    std::cin >> pname;
+    Room *start;
 
-    Player p(pname);
+    World(int roomCount)
+        : rooms(nullptr), count(roomCount), start(nullptr)
+    {
+        rooms = new Room *[count];
+        for (int i = 0; i < count; i++)
+        {
+            rooms[i] = nullptr;
+        }
+    }
 
-    Room *village = new Room("Village");
-    Room *forest = new Room("Forest");
-    Room *castle = new Room("Old Castle");
+    ~World()
+    {
+        for (int i = 0; i < count; i++)
+        {
+            delete rooms[i];
+        }
+        delete[] rooms;
+    }
+};
+
+World *createWorld()
+{
+    World *w = new World(3);
+
+    w->rooms[0] = new Room("Village");
+    w->rooms[1] = new Room("Forest");
+    w->rooms[2] = new Room("Old Castle");
+
+    Room *village = w->rooms[0];
+    Room *forest = w->rooms[1];
+    Room *castle = w->rooms[2];
 
     village->north = forest;
     forest->south = village;
@@ -528,7 +553,23 @@ int main()
     forest->addItem(new Sword(3));
     castle->addItem(new HealthPotion(10));
 
-    Room *current = village;
+    w->start = village;
+
+    return w;
+}
+
+int main()
+{
+
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    std::string pname;
+    std::cout << "Insert Player Name: ";
+    std::cin >> pname;
+
+    Player p(pname);
+
+    World *world = createWorld();
+    Room *current = world->start;
 
     printHelp();
     while (p.isAlive())
@@ -542,7 +583,7 @@ int main()
         std::string cmd;
         std::cin >> cmd;
 
-        if (!std::cin)  
+        if (!std::cin)
             break;
 
         if (cmd == "quit")
@@ -647,9 +688,6 @@ int main()
         }
     }
 
-    delete village;
-    delete forest;
-    delete castle;
-
+    delete world;
     return 0;
 }
