@@ -415,7 +415,7 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
     }
 
     std::cout << "You engage " << enemy->name << " in combat.\n";
-    pauseMs(2400);
+    pauseMs(2000);
 
     while (player.isAlive() && enemy->isAlive())
     {
@@ -432,8 +432,8 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
 
         std::cout << "You hit " << enemy->name << " for " << playerDmg
                   << " damage. Enemy HP: " << enemy->hp << "\n";
-        
-        pauseMs(2400);
+
+        pauseMs(2000);
 
         if (!enemy->isAlive())
             break;
@@ -450,7 +450,7 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
 
         std::cout << enemy->name << " hits you for " << enemyDmg
                   << " damage. Your HP: " << player.hp << "\n";
-        pauseMs(2400);
+        pauseMs(2000);
     }
 
     if (!player.isAlive())
@@ -463,7 +463,39 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
     delete defeated;
 
     std::cout << "You defeated the enemy.\n";
-    pauseMs(2400);
+    pauseMs(2000);
+}
+void printHelp()
+{
+    std::cout
+        << "Commands:\n"
+        << "  help\n"
+        << "  stats\n"
+        << "  inv\n"
+        << "  go <north|south|east|west>\n"
+        << "  take <index number>\n"
+        << "  use <index number>\n"
+        << "  fight <index number>\n"
+        << "  quit\n";
+}
+
+void printStats(const Player &p)
+{
+    std::cout << "Player: " << p.name
+              << " | HP: " << p.hp
+              << " | ATK: " << p.attackD
+              << "\n";
+}
+
+bool readIntArg(int &out)
+{
+    if (!(std::cin >> out))
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return false;
+    }
+    return true;
 }
 
 int main()
@@ -498,20 +530,38 @@ int main()
 
     Room *current = village;
 
-    std::cout << "Commands: go <north|south|east|west>, take <index>, fight <index>, inv, use <index>, quit\n";
-
-    while (true)
+    printHelp();
+    while (p.isAlive())
     {
         pauseMs(1800);
+
         current->describe();
-        std::cout << "Player HP: " << p.hp << " | ATK: " << p.attackD << "\n";
+        printStats(p);
+
         std::cout << "\n> ";
         std::string cmd;
         std::cin >> cmd;
 
+        if (!std::cin)  
+            break;
+
         if (cmd == "quit")
         {
             break;
+        }
+        else if (cmd == "help")
+        {
+            printHelp();
+            pauseMs(1000);
+        }
+        else if (cmd == "stats")
+        {
+            printStats(p);
+            pauseMs(1000);
+        }
+        else if (cmd == "inv")
+        {
+            p.inventory.list();
         }
         else if (cmd == "go")
         {
@@ -532,14 +582,10 @@ int main()
         else if (cmd == "take")
         {
             int idx;
-
-            if (!(std::cin >> idx))
+            if (!readIntArg(idx))
             {
                 std::cout << "Please type: take <number>\n";
-
-                std::cin.clear();                                                   // clear fail state
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // discard rest of line
-                continue;                                                           // go back to top of loop
+                continue;
             }
 
             Item *picked = current->removeItemAt(idx);
@@ -553,19 +599,12 @@ int main()
                 p.inventory.add(picked);
             }
         }
-        else if (cmd == "inv")
-        {
-            p.inventory.list();
-        }
         else if (cmd == "use")
         {
             int idx;
-
-            if (!(std::cin >> idx))
+            if (!readIntArg(idx))
             {
                 std::cout << "Please type: use <number>\n";
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 continue;
             }
 
@@ -585,16 +624,12 @@ int main()
                 std::cout << "The potion was consumed.\n";
             }
         }
-
         else if (cmd == "fight")
         {
             int idx;
-
-            if (!(std::cin >> idx))
+            if (!readIntArg(idx))
             {
                 std::cout << "Please type: fight <number>\n";
-                std::cin.clear();
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 continue;
             }
 
@@ -606,12 +641,12 @@ int main()
                 break;
             }
         }
-
         else
         {
-            std::cout << "Unknown command.\n";
+            std::cout << "Unknown command. Type 'help'.\n";
         }
     }
+
     delete village;
     delete forest;
     delete castle;
