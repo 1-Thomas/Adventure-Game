@@ -9,6 +9,12 @@ void pauseMs(int ms)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
+
+int randInRange(int minVal, int maxVal)
+{
+    return minVal + (std::rand() % (maxVal - minVal + 1));
+}
+
 class Player;
 
 class Enemy
@@ -404,6 +410,19 @@ Item *Room::removeItemAt(int index)
     itemCount--;
     return removed;
 }
+Item *makeRandomItem(int difficulty)
+{
+    if (randInRange(0, 1) == 0)
+    {
+        int heal = 4 + difficulty * 3 + randInRange(0, 4);
+        return new HealthPotion(heal);
+    }
+    else
+    {
+        int bonus = 1 + difficulty / 2 + randInRange(0, 2);
+        return new Sword(bonus);
+    }
+}
 
 void fightEnemy(Player &player, Room &room, int enemyIndex)
 {
@@ -460,11 +479,40 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
     }
 
     Enemy *defeated = room.removeEnemyAt(enemyIndex);
-    delete defeated;
+
+    int hpReward = 2 + defeated->attackD / 2;
+    int atkReward = 1;
+
+    player.hp += hpReward;
+    player.attackD += atkReward;
 
     std::cout << "You defeated the enemy.\n";
+    std::cout << "Here are your rewards!\n";
+    std::cout << " +HP: " << hpReward
+              << " | +ATK: " << atkReward << "\n";
+    std::cout << "Current HP: " << player.hp
+              << " | ATK: " << player.attackD << "\n";
+
+    delete defeated;
     pauseMs(2000);
 }
+
+Enemy *makeRandomEnemy(int difficulty)
+{
+
+    static const char *names[] = {
+        "Rat", "Wolf", "Bandit", "Goblin", "Skeleton",
+        "Troll", "Gool", "Dwarf", "Dark Knight", "Warlock", "Warewolf", "Witch"};
+    const int nameCount = sizeof(names) / sizeof(names[0]);
+
+    std::string n = names[randInRange(0, nameCount - 1)];
+
+    int hp = 8 + difficulty * 6 + randInRange(0, 6);
+    int atk = 2 + difficulty * 2 + randInRange(0, 2);
+
+    return new Enemy(n, hp, atk);
+}
+
 void printHelp()
 {
     std::cout
@@ -527,34 +575,90 @@ struct World
 
 World *createWorld()
 {
-    World *w = new World(3);
+    const int ROOM_COUNT = 8;
+    World *w = new World(ROOM_COUNT);
+
+    static const char *roomNames[] = {
+        "Village",
+        "Forest",
+        "Old Castle",
+        "Cave",
+        "Old Lighthouse",
+        "The Docks",
+        "Abandoned Town",
+        "Ruins",
+    };
+    const int roomNameCount = sizeof(roomNames) / sizeof(roomNames[0]);
 
     w->rooms[0] = new Room("Village");
-    w->rooms[1] = new Room("Forest");
-    w->rooms[2] = new Room("Old Castle");
 
-    Room *village = w->rooms[0];
-    Room *forest = w->rooms[1];
-    Room *castle = w->rooms[2];
+  
+    for (int i = 1; i < ROOM_COUNT; i++)
+    {
+        std::string rname = roomNames[randInRange(0, roomNameCount - 1)];
+        w->rooms[i] = new Room(rname);
+    }
 
-    village->north = forest;
-    forest->south = village;
+    for (int i = 1; i < ROOM_COUNT; i++)
+    {
+        w->rooms[i - 1]->north = w->rooms[i];
+        w->rooms[i]->south = w->rooms[i - 1];
+    }
 
-    forest->east = castle;
-    castle->west = forest;
+    for (int i = 2; i < ROOM_COUNT; i++)
+    {
 
-    forest->addEnemy(new Enemy("Bandit", 12, 4));
-    forest->addEnemy(new Enemy("Troll", 14, 5));
+        if (randInRange(0, 1) == 1)
+        {
+            Room *a = w->rooms[i - 2];
+            Room *b = w->rooms[i];
 
-    castle->addEnemy(new Enemy("Skeleton Guard", 18, 6));
-    castle->addEnemy(new Enemy("Armored Knight", 22, 7));
+            if (a->east == nullptr && b->west == nullptr)
+            {
+                a->east = b;
+                b->west = a;
+            }
+        }
+    }
 
-    village->addItem(new HealthPotion(6));
-    forest->addItem(new Sword(3));
-    castle->addItem(new HealthPotion(10));
+    for (int i = 0; i < ROOM_COUNT; i++)
+    {
+        int difficulty = i;
 
-    w->start = village;
+        int enemyMin = (i == 0) ? 0 : 1;
+        int enemyMax = (i == 0) ? 0 : (1 + difficulty / 2);
+        int enemyCount = randInRange(enemyMin, enemyMax);
 
+        for (int e = 0; e < enemyCount; e++)
+        {
+            w->rooms[i]->addEnemy(makeRandomEnemy(difficulty));
+        }
+
+        if (i == 0)
+        {
+            w->rooms[i]->addItem(new HealthPotion(6));
+            w->rooms[i]->addItem(new Sword(4));
+        }
+        else
+        {
+            int roll = randInRange(1, 100);
+
+            if (roll <= 40)
+            {
+                
+                w->rooms[i]->addItem(makeRandomItem(difficulty));
+            }
+            else if (roll <= 55)
+            {
+                w->rooms[i]->addItem(makeRandomItem(difficulty));
+                w->rooms[i]->addItem(makeRandomItem(difficulty));
+            }
+        }
+    }
+
+    w->start = w->rooms[0];
+    w->rooms[ROOM_COUNT - 1]->name = "Final Boss Room";
+    w->rooms[ROOM_COUNT - 1]->addEnemy(new Enemy("Boss", 60, 12));
     return w;
 }
 
