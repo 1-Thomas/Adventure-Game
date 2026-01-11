@@ -5,6 +5,7 @@
 #include <ctime>
 #include <thread>
 #include <chrono>
+
 void pauseMs(int ms)
 {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
@@ -17,6 +18,7 @@ int randInRange(int minVal, int maxVal)
 
 class Player;
 
+// Enemy class with enemy with name, health, and attack damage
 class Enemy
 {
 public:
@@ -27,6 +29,7 @@ public:
     bool isAlive() const { return hp > 0; }
 };
 
+// Abstract base class for all items 
 class Item
 {
 public:
@@ -37,6 +40,7 @@ public:
     virtual void use(Player &player) = 0;
 };
 
+// Inventory class with item pointers and add/list/get/remove methods
 class Inventory
 {
 private:
@@ -57,6 +61,8 @@ public:
     Item *get(int index) const;
     Item *removeAt(int index);
 };
+
+// Player class with the user, HP, attack damage, and inventory
 class Player
 {
 public:
@@ -67,6 +73,8 @@ public:
     Player(const std::string &n) : name(n), hp(25), attackD(5), inventory() {}
     bool isAlive() const { return hp > 0; }
 };
+
+// Item to increase player's HP
 class HealthPotion : public Item
 {
     int healAmount;
@@ -79,6 +87,8 @@ public:
         std::cout << "You gained " << healAmount << "HP.\n";
     }
 };
+
+// Item to increases player's attack damage
 class Sword : public Item
 {
     int bonusAD;
@@ -95,11 +105,13 @@ public:
     }
 };
 
+
 Inventory::Inventory() : items(nullptr), count(0), capacity(0)
 {
     capacity = 4;
     items = new Item *[capacity];
 }
+
 
 Inventory::~Inventory()
 {
@@ -109,6 +121,7 @@ Inventory::~Inventory()
     }
     delete[] items;
 }
+
 
 void Inventory::resize(int newCapacity)
 {
@@ -124,6 +137,7 @@ void Inventory::resize(int newCapacity)
     capacity = newCapacity;
 }
 
+
 void Inventory::add(Item *itemPtr)
 {
     if (!itemPtr)
@@ -136,6 +150,7 @@ void Inventory::add(Item *itemPtr)
 
     items[count++] = itemPtr;
 }
+
 
 void Inventory::list() const
 {
@@ -153,10 +168,12 @@ void Inventory::list() const
     }
 }
 
+
 int Inventory::size() const
 {
     return count;
 }
+
 
 Item *Inventory::get(int index) const
 {
@@ -166,6 +183,7 @@ Item *Inventory::get(int index) const
     }
     return items[index];
 }
+
 
 Item *Inventory::removeAt(int index)
 {
@@ -185,6 +203,7 @@ Item *Inventory::removeAt(int index)
     return removed;
 }
 
+// Room class
 class Room
 {
 public:
@@ -335,6 +354,7 @@ private:
     void resizeItems(int newCapacity);
 };
 
+
 Room *moveRoom(Room *current, const std::string &dir)
 {
     if (!current)
@@ -352,6 +372,7 @@ Room *moveRoom(Room *current, const std::string &dir)
     return current;
 }
 
+
 void Room::resizeItems(int newCapacity)
 {
     Item **newArr = new Item *[newCapacity];
@@ -366,6 +387,7 @@ void Room::resizeItems(int newCapacity)
     itemCapacity = newCapacity;
 }
 
+
 void Room::addItem(Item *it)
 {
     if (!it)
@@ -378,6 +400,7 @@ void Room::addItem(Item *it)
 
     groundItems[itemCount++] = it;
 }
+
 
 void Room::listItems() const
 {
@@ -395,6 +418,7 @@ void Room::listItems() const
     }
 }
 
+
 Item *Room::removeItemAt(int index)
 {
     if (index < 0 || index >= itemCount)
@@ -410,6 +434,8 @@ Item *Room::removeItemAt(int index)
     itemCount--;
     return removed;
 }
+
+
 Item *makeRandomItem(int difficulty)
 {
     if (randInRange(0, 1) == 0)
@@ -424,6 +450,7 @@ Item *makeRandomItem(int difficulty)
     }
 }
 
+// Function for combat
 void fightEnemy(Player &player, Room &room, int enemyIndex)
 {
     Enemy *enemy = room.getEnemy(enemyIndex);
@@ -438,7 +465,6 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
 
     while (player.isAlive() && enemy->isAlive())
     {
-
         int playerDmg = player.attackD;
 
         playerDmg += (std::rand() % 3) - 1;
@@ -497,9 +523,9 @@ void fightEnemy(Player &player, Room &room, int enemyIndex)
     pauseMs(2000);
 }
 
+
 Enemy *makeRandomEnemy(int difficulty)
 {
-
     static const char *names[] = {
         "Rat", "Wolf", "Bandit", "Goblin", "Skeleton",
         "Troll", "Gool", "Dwarf", "Dark Knight", "Warlock", "Warewolf", "Witch"};
@@ -513,6 +539,7 @@ Enemy *makeRandomEnemy(int difficulty)
     return new Enemy(n, hp, atk);
 }
 
+// Prints text commands
 void printHelp()
 {
     std::cout
@@ -527,6 +554,7 @@ void printHelp()
         << "  quit\n";
 }
 
+// Prints player stats
 void printStats(const Player &p)
 {
     std::cout << "Player: " << p.name
@@ -534,6 +562,7 @@ void printStats(const Player &p)
               << " | ATK: " << p.attackD
               << "\n";
 }
+
 
 bool readIntArg(int &out)
 {
@@ -546,6 +575,7 @@ bool readIntArg(int &out)
     return true;
 }
 
+// World structure
 struct World
 {
     Room **rooms;
@@ -573,6 +603,7 @@ struct World
     }
 };
 
+
 World *createWorld()
 {
     const int ROOM_COUNT = 8;
@@ -592,7 +623,6 @@ World *createWorld()
 
     w->rooms[0] = new Room("Village");
 
-  
     for (int i = 1; i < ROOM_COUNT; i++)
     {
         std::string rname = roomNames[randInRange(0, roomNameCount - 1)];
@@ -607,7 +637,6 @@ World *createWorld()
 
     for (int i = 2; i < ROOM_COUNT; i++)
     {
-
         if (randInRange(0, 1) == 1)
         {
             Room *a = w->rooms[i - 2];
@@ -645,7 +674,6 @@ World *createWorld()
 
             if (roll <= 40)
             {
-                
                 w->rooms[i]->addItem(makeRandomItem(difficulty));
             }
             else if (roll <= 55)
@@ -662,10 +690,11 @@ World *createWorld()
     return w;
 }
 
+// Main function for game loop
 int main()
 {
-
     std::srand(static_cast<unsigned>(std::time(nullptr)));
+
     std::string pname;
     std::cout << "Insert Player Name: ";
     std::cin >> pname;
